@@ -1,0 +1,14 @@
+services:
+  bot:
+    build: .
+    env_file: .env
+    environment:
+      OLLAMA_HOST: http://host.docker.internal:11434
+      DB_PATH: /data/masareef.db
+    volumes:
+      - masareef-data:/data
+    restart: unless-stopped
+
+volumes:
+  masareef-data:
+    name: masareef-data
