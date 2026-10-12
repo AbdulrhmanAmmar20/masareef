@@ -1,6 +1,6 @@
 import llm
 import db
-
+import json 
 
 SYSTEM = """أنت مساعد لتتبع المصاريف الشخصية.
 - رد دائمًا بالعربية وباختصار.
@@ -11,6 +11,48 @@ SYSTEM = """أنت مساعد لتتبع المصاريف الشخصية.
 - لا تذكر أي مبلغ أو مجموع إلا بعد استدعاء الأداة في نفس الرد. لا تحسب من ذاكرتك.
 - احفظ فقط إذا كانت الرسالة تأكيدًا لعملية شراء تمت فعلًا وخُصم مبلغها. لا تحفظ الإعلانات والعروض، ولا الاسترداد، ولا الإيداع، ولا رموز التحقق.
 - الصيدليات والمستشفيات والعيادات تصنيفها health."""
+
+
+
+
+CATEGORIES = ["food", "transport", "shopping", "bills", "health", "other"]
+
+CATEGORIES = ["food", "transport", "shopping", "bills", "health", "other"]
+
+SCHEMAS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "save_expense",
+            "description": "Save one expense.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "amount": {"type": "number", "description": "The amount in SAR."},
+                    "merchant": {"type": "string", "description": "Where the money was spent."},
+                    "category": {"type": "string", "enum": CATEGORIES},
+                },
+                "required": ["amount", "merchant", "category"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_total",
+            "description": "Get the total amount spent, in SAR.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {"type": "string", "enum": CATEGORIES + ["all"]},
+                },
+                "required": ["category"],
+            },
+        },
+    },
+]
+
+
 
 
 def make_tools(user_id: int) -> dict:
@@ -61,23 +103,23 @@ def run(user_id: int, user_text: str, history: list) -> str:
 
     for step in range(5):
 
-        message = llm.chat(messages, list(TOOLS.values()))
+        message = llm.chat(messages, SCHEMAS)
         messages.append(message)
 
-        if not message.tool_calls:
+        if not message.get("tool_calls"):
             history.clear()
             history.extend(messages[1:])
-            return message.content
+            return message.get("content", "")
 
-        for call in message.tool_calls:
-            name = call.function.name
-            args = call.function.arguments
+        for call in message["tool_calls"]:
+            name = call["function"]["name"]
+            args = json.loads(call["function"]["arguments"])
             print(f"step {step}: {name} {args}")
             if name not in TOOLS:
                 result = f"error: unknown tool {name}"
             else:
                 result = TOOLS[name](**args)
-            messages.append({"role": "tool", "tool_name": name, "content": result})
+            messages.append({"role": "tool", "tool_call_id": call["id"], "content": result})
 
     return "stopped: too many steps"
 
