@@ -14,7 +14,7 @@ ALLOWED = {int(x) for x in os.environ.get("ALLOWED_USERS", "").split(",") if x.s
 async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id not in ALLOWED:
-        await update.message.reply_text(f"هذا البوت خاص. رقمك: {user_id}")
+        await update.message.reply_text("هذا البوت خاص.")
         return
     text = update.message.text
     history = HISTORIES.setdefault(user_id, [])
