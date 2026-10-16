@@ -10,8 +10,15 @@ import time
 # This must be set before importing agent/db, which read DB_PATH on import.
 os.environ["DB_PATH"] = os.path.join(tempfile.mkdtemp(), "evals.db")
 
+import importlib  # noqa: E402
+
 import llm  # noqa: E402
-from agent import SCHEMAS, SYSTEM, run  # noqa: E402
+from agent import SCHEMAS, SYSTEM  # noqa: E402
+
+# Which agent implementation the conversation evals run: "agent" (hand-written
+# loop) or "graph_agent" (LangGraph). Both expose the same run() signature.
+AGENT_MODULE = os.environ.get("AGENT_MODULE", "agent")
+run = importlib.import_module(AGENT_MODULE).run
 
 # Seconds to wait between model calls. Free API tiers limit requests per minute.
 DELAY = float(os.environ.get("EVAL_DELAY", "0"))
@@ -167,7 +174,7 @@ def run_conversations() -> tuple[int, int]:
 
 
 if __name__ == "__main__":
-    print("model:", llm.MODEL)
+    print("model:", llm.MODEL, "| agent:", AGENT_MODULE)
 
     started = time.time()
     print("\n== tool choice ==")

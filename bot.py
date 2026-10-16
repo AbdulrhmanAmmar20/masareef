@@ -4,10 +4,9 @@ from telegram import Update
 from telegram.ext import Application, MessageHandler, ContextTypes, filters
 import asyncio
 import db
-from agent import run
+from graph_agent import run
 
 load_dotenv()
-HISTORIES = {}
 
 ALLOWED = {int(x) for x in os.environ.get("ALLOWED_USERS", "").split(",") if x.strip()}
 
@@ -17,8 +16,8 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("هذا البوت خاص.")
         return
     text = update.message.text
-    history = HISTORIES.setdefault(user_id, [])
-    reply = await asyncio.to_thread(run, user_id, text, history)
+    # Conversation history is saved by the LangGraph checkpointer, per user.
+    reply = await asyncio.to_thread(run, user_id, text, [])
     await update.message.reply_text(reply)
 
 db.init()
