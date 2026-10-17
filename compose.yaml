@@ -4,6 +4,8 @@ services:
     env_file: .env
     environment:
       DB_PATH: /data/masareef.db
+      # Pinned model version. Overrides MODEL in .env; change it here, run the evals, then push.
+      MODEL: gemini-3.5-flash-lite
     volumes:
       - masareef-data:/data
     restart: unless-stopped
