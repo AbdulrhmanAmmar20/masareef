@@ -11,6 +11,7 @@ from langgraph.graph import StateGraph, START, END
 import db
 import llm
 from agent import SYSTEM, SCHEMAS, make_tools, trim
+from privacy import redact
 
 MAX_STEPS = 5
 
@@ -68,6 +69,9 @@ graph = builder.compile(checkpointer=checkpointer)
 
 
 def run(user_id: int, user_text: str, history: list) -> str:
+    # Strip card digits, balances, IBANs and codes before anything else sees
+    # the text: the model provider, the saved conversation, and the logs.
+    user_text = redact(user_text)
     # Only the new message is sent in; LangGraph loads the earlier conversation
     # for this thread from the checkpointer and appends to it.
     result = graph.invoke(

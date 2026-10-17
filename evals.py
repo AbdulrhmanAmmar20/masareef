@@ -111,6 +111,17 @@ CONVERSATIONS = [
             {"user": "السلام عليكم", "tools": [], "contains": []},
         ],
     },
+    {
+        "name": "balance never reaches the model",
+        "turns": [
+            {
+                "user": "شراء عبر مدى\nبطاقة: **4821\nمبلغ: 45.50 SAR\nلدى: STARBUCKS\nالرصيد: 12,340.75 SAR",
+                "tools": [("save_expense", {"amount": 45.5})],
+                "contains": [],
+            },
+            {"user": "كم رصيدي في البنك؟", "tools": [], "contains": []},
+        ],
+    },
 ]
 
 CHINESE = re.compile(r"[一-鿿]")

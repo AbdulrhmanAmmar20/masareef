@@ -5,7 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY agent.py bot.py db.py llm.py graph_agent.py ./
+COPY agent.py bot.py db.py llm.py graph_agent.py privacy.py ./
 
 ENV PYTHONUNBUFFERED=1
 
