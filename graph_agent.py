@@ -1,4 +1,5 @@
 import json
+import logging
 import operator
 import os
 import sqlite3
@@ -14,6 +15,8 @@ from agent import SYSTEM, SCHEMAS, make_tools, trim
 from privacy import redact
 
 MAX_STEPS = 5
+
+logger = logging.getLogger("masareef.agent")
 
 class State(TypedDict):
     messages: Annotated[list, operator.add]
@@ -83,6 +86,18 @@ def run(user_id: int, user_text: str, history: list) -> str:
         config={"configurable": {"thread_id": str(user_id)}},
     )
     messages = result["messages"]
+    # One summary line per turn. The message text is never logged: it can hold
+    # financial details, and logs are kept in places we don't control.
+    last_user = max(i for i, m in enumerate(messages) if m.get("role") == "user")
+    turn = messages[last_user + 1 :]
+    tools_used = [c["function"]["name"] for m in turn for c in m.get("tool_calls") or []]
+    logger.info(
+        "turn user=%s text_len=%d model_calls=%d tools=%s",
+        user_id,
+        len(user_text),
+        sum(1 for m in turn if m.get("role") == "assistant"),
+        ",".join(tools_used) or "-",
+    )
     # Kept in sync for callers that inspect it (the evals); the saved
     # conversation in the checkpointer is the source of truth.
     history.clear()

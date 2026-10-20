@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import time
 
 from dotenv import load_dotenv
 from telegram import Update
@@ -15,6 +16,10 @@ ALLOWED = {int(x) for x in os.environ.get("ALLOWED_USERS", "").split(",") if x.s
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("masareef")
+# The HTTP client logs every request URL at INFO. Telegram puts the bot token
+# in the URL, so these loggers must stay quiet or the token ends up in the logs.
+for noisy in ("httpx", "httpx2", "httpcore"):
+    logging.getLogger(noisy).setLevel(logging.WARNING)
 
 WELCOME = (
     "أهلًا! أنا أتتبع مصاريفك.\n\n"
@@ -41,6 +46,8 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("هذا البوت خاص. أرسل /start لتعرف رقمك.")
         return
     text = update.message.text
+    started = time.perf_counter()
+    ok = True
     try:
         # Conversation history is saved by the LangGraph checkpointer, per user.
         reply = await asyncio.to_thread(run, user_id, text, [])
@@ -49,6 +56,8 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # so internal details (files, provider errors) are never shown to them.
         logger.exception("agent failed for user %s", user_id)
         reply = "صار خطأ مؤقت عندي. حاول مرة ثانية بعد دقيقة."
+        ok = False
+    logger.info("request user=%s ms=%d ok=%s", user_id, (time.perf_counter() - started) * 1000, ok)
     # Telegram rejects empty messages, so never send one.
     await update.message.reply_text(reply or "ما فهمت الرسالة، جرّب تكتبها بشكل ثاني.")
 
