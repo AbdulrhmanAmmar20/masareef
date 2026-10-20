@@ -74,6 +74,42 @@ def user_for_token(token: str) -> int | None:
     return row["user_id"] if row else None
 
 
+def spending_by_category(user_id: int, from_days_ago: int, to_days_ago: int = 0) -> list:
+    """Totals per category for expenses saved between two points in the past.
+
+    from_days_ago=7, to_days_ago=0 is the last seven days; 14 and 7 is the
+    week before. Times are compared in UTC, the same as created_at.
+    """
+    with connect() as conn:
+        return conn.execute(
+            """
+            SELECT category, SUM(amount) AS total, COUNT(*) AS count
+            FROM expenses
+            WHERE user_id = ?
+              AND created_at >= datetime('now', ?)
+              AND created_at < datetime('now', ?)
+            GROUP BY category
+            ORDER BY total DESC
+            """,
+            (user_id, f"-{from_days_ago} days", f"-{to_days_ago} days"),
+        ).fetchall()
+
+
+def top_merchants(user_id: int, days: int, limit: int = 3) -> list:
+    with connect() as conn:
+        return conn.execute(
+            """
+            SELECT merchant, SUM(amount) AS total, COUNT(*) AS count
+            FROM expenses
+            WHERE user_id = ? AND created_at >= datetime('now', ?)
+            GROUP BY merchant
+            ORDER BY total DESC
+            LIMIT ?
+            """,
+            (user_id, f"-{days} days", limit),
+        ).fetchall()
+
+
 if __name__ == "__main__":
     init()
     add_expense(1, 30.0, "ALBAIK", "food")

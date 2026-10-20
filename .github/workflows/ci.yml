@@ -20,7 +20,7 @@ jobs:
       # Building only proves the image assembles. Importing the agent inside it
       # proves every module the bot needs was copied in and installed.
       - name: Import check inside the image
-        run: docker run --rm -e TELEGRAM_TOKEN=ci masareef python -c "import graph_agent, agent, llm, db, privacy, api; print('imports ok')"
+        run: docker run --rm -e TELEGRAM_TOKEN=ci masareef python -c "import graph_agent, agent, llm, db, privacy, api, report; print('imports ok')"
 
       # compose.yaml and the Caddyfile are deployed as-is, so a typo in either
       # would take the server down. Validate both before anything ships.
