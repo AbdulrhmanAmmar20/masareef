@@ -1,0 +1,13 @@
+# sslip.io resolves this name to 51.20.100.96 (the server's Elastic IP),
+# which lets Caddy get a real certificate without owning a domain.
+51-20-100-96.sslip.io {
+	# Only these two paths exist; everything else is rejected here,
+	# before it reaches the application.
+	@allowed path /sms /health
+	handle @allowed {
+		reverse_proxy api:8000
+	}
+	handle {
+		respond 404
+	}
+}

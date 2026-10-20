@@ -1,15 +1,42 @@
+# Settings shared by the bot and the SMS intake API. Both run the same image
+# and the same agent, against the same databases on the same volume.
+x-app: &app
+  build: .
+  env_file: .env
+  environment:
+    DB_PATH: /data/masareef.db
+    # Pinned model version. Overrides MODEL in .env; change it here, run the evals, then push.
+    MODEL: gemini-3.5-flash-lite
+  volumes:
+    - masareef-data:/data
+  restart: unless-stopped
+
 services:
   bot:
-    build: .
-    env_file: .env
-    environment:
-      DB_PATH: /data/masareef.db
-      # Pinned model version. Overrides MODEL in .env; change it here, run the evals, then push.
-      MODEL: gemini-3.5-flash-lite
+    <<: *app
+
+  # Receives bank SMS from the iPhone automation. Not published on any port:
+  # only Caddy can reach it, over the internal compose network.
+  api:
+    <<: *app
+    command: uvicorn api:app --host 0.0.0.0 --port 8000
+
+  # Terminates TLS on 443 and forwards to the API. Gets and renews the
+  # certificate on its own.
+  caddy:
+    image: caddy:2
+    ports:
+      - "443:443"
     volumes:
-      - masareef-data:/data
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates must survive restarts, or every deploy requests a new one
+      # and hits the certificate authority's rate limits.
+      - caddy-data:/data
+    depends_on:
+      - api
     restart: unless-stopped
 
 volumes:
   masareef-data:
     name: masareef-data
+  caddy-data:
