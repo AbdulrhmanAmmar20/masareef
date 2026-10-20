@@ -40,6 +40,23 @@ async def on_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(WELCOME)
 
 
+async def on_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Issue the key the iPhone automation uses to send bank SMS."""
+    user_id = update.effective_user.id
+    if user_id not in ALLOWED:
+        await update.message.reply_text("هذا البوت خاص. أرسل /start لتعرف رقمك.")
+        return
+    # A new key replaces the old one, so /link also revokes a leaked key.
+    token = db.create_token(user_id)
+    logger.info("link user=%s issued a new key", user_id)
+    await update.message.reply_text(
+        "هذا مفتاحك لأتمتة الآيفون. انسخه وحطه في الاختصار:\n\n"
+        f"{token}\n\n"
+        "لا تشاركه مع أحد. أي أحد معه هذا المفتاح يقدر يرسل رسايل باسمك.\n"
+        "لو تسرّب، أرسل /link مرة ثانية ويتلغى القديم."
+    )
+
+
 async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id not in ALLOWED:
@@ -66,5 +83,6 @@ db.init()
 
 app = Application.builder().token(os.environ["TELEGRAM_TOKEN"]).build()
 app.add_handler(CommandHandler("start", on_start))
+app.add_handler(CommandHandler("link", on_link))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
 app.run_polling()

@@ -3,3 +3,5 @@ python-telegram-bot
 python-dotenv
 langgraph
 langgraph-checkpoint-sqlite
+fastapi
+uvicorn[standard]
